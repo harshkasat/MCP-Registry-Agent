@@ -8,6 +8,10 @@ import asyncio
 from config.google_gemini import GeminiClient
 from config.groq_client import GroqClient
 
+
+BATCH_SIZE = 15
+DELAY_SECONDS = 30
+
 async def enhance_mcp_description_gemini(old_description: str):
     try:
         update_description = await GeminiClient().generate_content(contents=old_description)
@@ -30,31 +34,39 @@ async def enhance_mcp_description():
     with open('all_mcp_server.json', 'r', encoding='utf-16') as file:
         data = json.load(file)
 
-    # Prepare async enhancement tasks
-    tasks = [
-        enhance_mcp_description_gemini(item['description'])
-        # enhance_mcp_description_groq(item['description'])  # use this instead if needed
-        for item in data if 'description' in item
-    ]
+    updated_descriptions = []
+    idx = 0
 
-    # Await all tasks
-    updated_descriptions = await asyncio.gather(*tasks)
+    descriptions_to_update = [item['description'] for item in data if 'description' in item]
+    
+    for i in range(0, len(descriptions_to_update), BATCH_SIZE):
+        batch = descriptions_to_update[i:i+BATCH_SIZE]
+
+        # enhance_mcp_description_groq(item['description']) --> Alternative GROQ API
+        tasks = [enhance_mcp_description_gemini(desc) for desc in batch]
+        results = await asyncio.gather(*tasks)
+
+        updated_descriptions.extend(results)
+
+        if i + BATCH_SIZE < len(descriptions_to_update):
+            print(f"⏳ Sleeping for {DELAY_SECONDS} seconds after batch {i//BATCH_SIZE + 1}")
+            await asyncio.sleep(DELAY_SECONDS)
 
     # Update descriptions in the original data
-    idx = 0
     for item in data:
         if 'description' in item:
-            item['description'] = json.loads(updated_descriptions[idx])['description']
-            # temp = json.loads(updated_descriptions[idx])
-            # print("@@ID", idx)
-            # print(temp['description'])
+            updated = json.loads(updated_descriptions[idx])
+            item['description'] = updated['description']
             idx += 1
 
-    # Save updated data back to the same file
+    # Save updated data
     with open('all_mcp_server.json', 'w', encoding='utf-16') as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
 
     print(f"\n✅ Successfully updated and saved {idx} descriptions.")
 
 if __name__ == "__main__":
+    import time
+    start = time.time()
     asyncio.run(enhance_mcp_description())
+    print("Total Time Taken to completed: ", time.time() - start)

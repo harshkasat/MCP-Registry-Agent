@@ -1,5 +1,6 @@
 import os
 from pydantic import BaseModel
+from enum import Enum
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -23,6 +24,13 @@ f"informative descriptions for open-source Model Context Protcol, here quick int
 class DescriptionModel(BaseModel):
     description:str
 
+
+class TaskTypeEnum(str, Enum):
+    RETRIEVAL_QUERY = "retrieval_query"
+    RETRIEVAL_DOCUMENT = "retrieval_document"
+    SEMANTIC_SIMILARITY = "semantic_similarity"
+    CLASSIFICATION = "classification"
+    CLUSTERING = "clustering"
 
 SAFE_SETTINGS = [
     {

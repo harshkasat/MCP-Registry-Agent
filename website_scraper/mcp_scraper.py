@@ -79,12 +79,12 @@ async def main():
         results = [res for res in results_raw if res]
 
         with open('all_mcp_server.json', 'w', encoding='utf-16') as file:
-            json_instance = json.dumps(results[:3], ensure_ascii=False)
+            json_instance = json.dumps(results, ensure_ascii=False)
             file.write(json_instance)
     
     # await enhance_mcp_description()
 
 
 if __name__ == "__main__":
-    # asyncio.run(main())
-    asyncio.run(enhance_mcp_description())
+    asyncio.run(main())
+    # asyncio.run(enhance_mcp_description())

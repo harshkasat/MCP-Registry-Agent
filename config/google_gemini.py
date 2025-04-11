@@ -1,13 +1,13 @@
 from google import genai
 import asyncio
 from google.genai import types
-from config import genai_api_key, SAFE_SETTINGS, EXTRACT_DESCRIPTOIN_PROMPT, DescriptionModel
-from pydantic import BaseModel
+from config import genai_api_key, SAFE_SETTINGS, EXTRACT_DESCRIPTOIN_PROMPT, DescriptionModel, TaskTypeEnum
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 
 
 # Initialize the API client
-class GeminiClient():
+class GeminiClient:
 
     def __init__(self):
         self.configure_llm = genai.Client(api_key=genai_api_key)
@@ -30,11 +30,31 @@ class GeminiClient():
             if response is None:
                 return contents
             return response.text
-        except Exception as e:
-            print(f"Failed to generate content by GeminiClient().generate: {e}")
+        except Exception as error:
+            print(f"Failed to generate content by GeminiClient().generate: {error}")
             return None
 
+class LangchainGeminiClient():
+
+    def __init__(self):
+        self.api_key = genai_api_key
+
+    def generate_embeddings(self):
+        try:
+            embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=self.api_key,
+            task_type=TaskTypeEnum.SEMANTIC_SIMILARITY
+            )
+
+            return embeddings
+        except Exception as error:
+            print(f"Failed to generate embedding by LangchainGeminiClient().generate_embeddings(): {error}")
+
 # if __name__ == '__main__':
+#     embedding = LangchainGeminiClient().generate_embeddings()
+#     vector = embedding.embed_query("Hello World")
+#     print(vector[:5])
 #     content = {
 #     "title": "cursor-rust-tools",
 #     "link": "https://www.mcpserverfinder.com/servers/terhechte/cursor-rust-tools",
