@@ -2,7 +2,7 @@ from google import genai
 import asyncio
 from google.genai import types
 from config import genai_api_key, SAFE_SETTINGS, EXTRACT_DESCRIPTOIN_PROMPT, DescriptionModel, TaskTypeEnum
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
 
 
@@ -50,6 +50,19 @@ class LangchainGeminiClient():
             return embeddings
         except Exception as error:
             print(f"Failed to generate embedding by LangchainGeminiClient().generate_embeddings(): {error}")
+
+    def generate_content(self):
+        try:
+            llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            api_key=self.api_key,
+            temperature=0.1
+            )
+            return llm
+        except Exception as error:
+            print(f"Failed to generate embedding by LangchainGeminiClient().generate_content(): {error}")
+
+
 
 # if __name__ == '__main__':
 #     embedding = LangchainGeminiClient().generate_embeddings()

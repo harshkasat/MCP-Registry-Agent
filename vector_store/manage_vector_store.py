@@ -27,7 +27,7 @@ load_dotenv()
 class PineconeVectorStoreManage:
 
     def __init__(self,
-                index_name='mcp-server', 
+                index_name='mcp-server',
                 embeddings=LangchainGeminiClient().generate_embeddings()):
 
         self.index = create_pinecone_index(index_name=index_name)
@@ -47,6 +47,7 @@ class PineconeVectorStoreManage:
     def retrieve_query(self, _query:str):
         try:
             retreive = self.vectorstore.similarity_search(_query)
+            # print("@@ METADATA ",retreive)
             return retreive[0].page_content
         except Exception as error:
             print(f"An error occurred while creating documents at PineconeVectorStoreManage().retrieve_query(): {error}")
