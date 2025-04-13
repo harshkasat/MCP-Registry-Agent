@@ -40,6 +40,7 @@ async def process_card(session, card):
         github_link = await details_scraper.get_mcp_author_github()
         stars = await details_scraper.get_stars()
         stars = stars if stars else baseline_stars
+        markdown = "More description about MCP server" + await details_scraper.get_markdown()
 
         # print({
         #     "link":link,
@@ -53,7 +54,7 @@ async def process_card(session, card):
             "title": title,
             "link": link,
             "created_by": created_by,
-            "description": description,
+            "description": description + markdown,
             "stars": stars,
             "categories": categories,
             "language": language,
@@ -81,8 +82,6 @@ async def main():
         with open('all_mcp_server.json', 'w', encoding='utf-16') as file:
             json_instance = json.dumps(results, ensure_ascii=False)
             file.write(json_instance)
-    
-    # await enhance_mcp_description()
 
 
 if __name__ == "__main__":

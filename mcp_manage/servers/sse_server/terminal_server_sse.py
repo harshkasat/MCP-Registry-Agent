@@ -40,6 +40,8 @@ from mcp.server.sse import SseServerTransport  # The SSE transport layer
 from starlette.applications import Starlette  # Web framework to define routes
 from starlette.routing import Route, Mount  # Routing for HTTP and message endpoints
 from starlette.requests import Request  # HTTP request objects
+from starlette.responses import JSONResponse # JsonResponse for rag retrieve query
+from starlette.exceptions import HTTPException
 
 import uvicorn  # ASGI server to run the Starlette app
 
@@ -144,12 +146,32 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
                 mcp_server.create_initialization_options(),
             )
 
+    async def rag_query_retrieve(req: Request) -> JSONResponse:
+        try:
+            req_body = await req.json()
+            query = req_body['query']
+            response = self_query_retriever(query=query)
+            return JSONResponse(
+                content={
+                    "message":response
+                },
+                status_code=200
+            )
+        except HTTPException as error:
+            return JSONResponse(
+               content={
+                   "error" : error
+               },
+               status_code=404
+            )
+
     # Return the Starlette app with configured endpoints
     return Starlette(
         debug=debug,
         routes=[
             Route("/sse", endpoint=handle_sse),          # For initiating SSE connection
             Mount("/messages/", app=sse.handle_post_message),  # For POST-based communication
+            Route("/rag_query", rag_query_retrieve, methods=["GET"]),
         ],
     )
 

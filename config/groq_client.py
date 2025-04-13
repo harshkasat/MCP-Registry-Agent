@@ -1,6 +1,6 @@
 from groq import Groq
 import json
-from config import EXTRACT_DESCRIPTOIN_PROMPT, groq_api_key, DescriptionModel
+from config import EHANCE_DESCRIPTOIN_PROMPT, groq_api_key, DescriptionModel
 
 
 class GroqClient:
@@ -15,7 +15,7 @@ class GroqClient:
                 # how it should behave throughout the conversation.
                 {
                     "role": "system",
-                    "content": f"{EXTRACT_DESCRIPTOIN_PROMPT}"
+                    "content": f"{EHANCE_DESCRIPTOIN_PROMPT}"
                     f" YOU MUST USE JSON FILE {json.dumps(DescriptionModel.model_json_schema())}",
                 },
                 # Set a user message for the assistant to respond to.

@@ -13,7 +13,7 @@ MCP_INTRO = "MCP is an open protocol that standardizes how applications provide 
 "The flexibility to switch between LLM providers and vendors" \
 "Best practices for securing your data within your infrastructure" \
 
-EXTRACT_DESCRIPTOIN_PROMPT = "You are a helpful assistant that writes engaging and " \
+EHANCE_DESCRIPTOIN_PROMPT = "You are a helpful assistant that writes engaging and " \
 f"informative descriptions for open-source Model Context Protcol, here quick intro about MCP: {MCP_INTRO}. " \
 "Given the following data about an MCP server, create a detailed project description " \
 "suitable for a GitHub README or website landing page. Make sure the tone is friendly, " \

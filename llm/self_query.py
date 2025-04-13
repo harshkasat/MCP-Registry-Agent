@@ -21,7 +21,7 @@ def self_query_retriever(query:str, verbose:bool=True):
         response = query_retriever.invoke(query)
         if response == []:
             return "Sorry 🥲 we didnt the suitable MCP for your need"
-        return response[0].page_content
+        return f" Response about MCP server {response[0].page_content} and here is metadata about the response {response[0].metadata}"
 
     except Exception as error:
        print(f"Failed to generate content by self_query_retriever: {error}")

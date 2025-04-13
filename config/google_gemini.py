@@ -1,7 +1,7 @@
+import json
 from google import genai
-import asyncio
 from google.genai import types
-from config import genai_api_key, SAFE_SETTINGS, EXTRACT_DESCRIPTOIN_PROMPT, DescriptionModel, TaskTypeEnum
+from config import genai_api_key, SAFE_SETTINGS, EHANCE_DESCRIPTOIN_PROMPT, DescriptionModel, TaskTypeEnum
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
 
@@ -15,11 +15,11 @@ class GeminiClient:
 
     async def generate_content(self, contents:str):
         try:
-            llm = self.configure_llm
-            response = llm.models.generate_content(
-                model="gemini-2.0-flash",
+            llm = self.configure_llm.aio
+            response = await llm.models.generate_content(
+                model="gemini-2.0-flash-lite",
                 config=types.GenerateContentConfig(
-                    system_instruction=EXTRACT_DESCRIPTOIN_PROMPT,
+                    system_instruction=EHANCE_DESCRIPTOIN_PROMPT,
                     safety_settings=SAFE_SETTINGS,
                     temperature=0.1,
                     response_mime_type='application/json',
@@ -29,7 +29,7 @@ class GeminiClient:
             )
             if response is None:
                 return contents
-            return response.text
+            return json.loads(response.text)
         except Exception as error:
             print(f"Failed to generate content by GeminiClient().generate: {error}")
             return None

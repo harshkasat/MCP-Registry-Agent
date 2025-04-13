@@ -14,7 +14,7 @@ class McpToolsScraper:
                     html = await response.text()
                     self.soup = BeautifulSoup(html, "html.parser")
         except Exception as error:
-            print(f"Error fetching URL {self.url}: {error}")
+            print(f"Error McpToolsScraper.fetch() URL {self.url}: {error}")
 
     async def get_all_categories(self):
         try:
@@ -27,10 +27,10 @@ class McpToolsScraper:
 
     async def get_mcp_language(self):
         try:
-            find_language = self.soup.find("h3", string="Language:")
+            find_language = self.soup.find("h3", string="Language:").find_next_sibling("p")
             if find_language is None:
                 return None
-            return find_language.find_next_sibling("p").text.strip()
+            return find_language.text.strip()
         except Exception as error:
             print(f"When running McpToolScraper.get_mcp_language we got this error {error}")
             return None
@@ -56,9 +56,18 @@ class McpToolsScraper:
                     stars_text = div.find('p').text.strip()
                     return stars_text
                     break
-
             return 0
         except Exception as error:
             print(f"When running McpToolScraper.get_stars we got this error {error}")
             return None
 
+    async def get_markdown(self):
+        try:
+            divs = self.soup.find_all('div', class_="markdown-body")
+            all_markdown = ""
+            for div in divs:
+                all_markdown += div.get_text().strip("\n")
+            return all_markdown
+        except Exception as error:
+            print(f"When running McpToolScraper.get_markdown we got this error: {error}")
+            return None
