@@ -13,3 +13,4 @@ langchain-core
 pinecone
 langchain-pinecone
 bs4
+lark
