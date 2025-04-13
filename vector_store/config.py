@@ -1,5 +1,4 @@
 import time
-import getpass
 import os
 
 from pinecone import Pinecone, ServerlessSpec

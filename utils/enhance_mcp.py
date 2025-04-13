@@ -38,7 +38,7 @@ async def enhance_mcp_description():
     idx = 0
 
     descriptions_to_update = [item['description'] for item in data if 'description' in item]
-    
+
     for i in range(0, len(descriptions_to_update), BATCH_SIZE):
         batch = descriptions_to_update[i:i+BATCH_SIZE]
 

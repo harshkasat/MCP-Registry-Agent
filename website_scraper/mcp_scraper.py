@@ -4,8 +4,6 @@ from bs4 import BeautifulSoup
 import json
 from website_scraper.tools_scraper import McpToolsScraper
 
-from utils.enhance_mcp import enhance_mcp_description
-
 
 async def validate_link(session, url):
     try:
@@ -13,8 +11,6 @@ async def validate_link(session, url):
             return response.status == 200
     except:
         return False
-
-
 
 
 async def process_card(session, card):
@@ -86,4 +82,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    # asyncio.run(enhance_mcp_description())

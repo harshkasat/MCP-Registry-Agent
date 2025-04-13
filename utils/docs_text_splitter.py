@@ -10,11 +10,6 @@ def _json_text_splitter(converted_dict: Dict[str, Any]):
         splitter = RecursiveJsonSplitter(max_chunk_size=768)
         json_chunks = splitter.split_json(json_data=converted_dict)
         text_chunks = splitter.split_text(json_data=converted_dict)
-        print("@@TEXT CHUNKS ", type(text_chunks))
-        print("@@JSON CHUNKS ", type(json_chunks))
-        # print("@@CONVERT DICT ", converted_dict)
-
-        # return text_chunks
         return json_chunks
     except Exception as error:
         print(f"Failed to split text by _json_text_splitter: {error}")

@@ -1,0 +1,15 @@
+pydantic
+python-dotenv
+google-genai
+langchain-google-genai
+groq
+langchain
+mcp
+starlette
+uvicorn
+langchain-text-splitters
+langchain-experimental
+langchain-core
+pinecone
+langchain-pinecone
+bs4

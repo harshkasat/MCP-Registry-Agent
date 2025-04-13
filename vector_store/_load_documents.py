@@ -1,7 +1,4 @@
 import json
-
-from uuid import uuid4
-import faiss
 from config.google_gemini import LangchainGeminiClient
 from langchain_core.documents import Document
 
