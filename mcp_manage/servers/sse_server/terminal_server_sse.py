@@ -177,22 +177,27 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
 
 
 # --------------------------------------------------------------------------------------
-# STEP 3: Start the server using Uvicorn if this file is run directly
+# STEP 3: Start the server using Uvicorn if this file is run directly in main
 # --------------------------------------------------------------------------------------
-if __name__ == "__main__":
-    # Get the underlying MCP server instance from FastMCP
-    mcp_server = mcp._mcp_server  # Accessing private member (acceptable here)
+# if __name__ == "__main__":
+#     # Get the underlying MCP server instance from FastMCP
+#     mcp_server = mcp._mcp_server  # Accessing private member (acceptable here)
 
-    # Command-line arguments for host/port control
-    import argparse
+#     # Command-line arguments for host/port control
+#     import argparse
 
-    parser = argparse.ArgumentParser(description='Run MCP SSE-based server')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-    parser.add_argument('--port', type=int, default=8081, help='Port to listen on')
-    args = parser.parse_args()
+#     parser = argparse.ArgumentParser(description='Run MCP SSE-based server')
+#     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
+#     parser.add_argument('--port', type=int, default=8081, help='Port to listen on')
+#     args = parser.parse_args()
 
-    # Build the Starlette app with debug mode enabled
+#     # Build the Starlette app with debug mode enabled
+#     starlette_app = create_starlette_app(mcp_server, debug=True)
+
+#     # Launch the server using Uvicorn
+#     uvicorn.run(starlette_app, host=args.host, port=args.port)
+
+def uvicorn_server():
+    mcp_server = mcp._mcp_server
     starlette_app = create_starlette_app(mcp_server, debug=True)
-
-    # Launch the server using Uvicorn
-    uvicorn.run(starlette_app, host=args.host, port=args.port)
+    uvicorn.run(starlette_app, host="0.0.0.0")
