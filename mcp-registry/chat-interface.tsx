@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { ModeToggle } from "@/components/DarkMode";
+// import { useToast } from "@/components/ui/sonner"
+import { toast } from "sonner"
 
 
 type ActiveButton = "none" | "add" | "deepSearch" | "think"
@@ -51,6 +53,7 @@ const WORD_DELAY = 40 // ms per word
 const CHUNK_SIZE = 2 // Number of words to add at once
 
 export default function ChatInterface() {
+  // const { toast } = useToast()
   const [inputValue, setInputValue] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -72,6 +75,7 @@ export default function ChatInterface() {
   const mainContainerRef = useRef<HTMLDivElement>(null)
   // Store selection state
   const selectionStateRef = useRef<{ start: number | null; end: number | null }>({ start: null, end: null })
+  const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   // Constants for layout calculations to account for the padding values
   const HEADER_HEIGHT = 48 // 12px height + padding
@@ -276,61 +280,77 @@ export default function ChatInterface() {
     })
   }
 
-  const getAIResponse = (userMessage: string) => {
-    const responses = [
-      `That's an interesting perspective. Let me elaborate on that a bit further. When we consider the implications of what you've shared, several key points come to mind. First, it's important to understand the context and how it relates to broader concepts. This allows us to develop a more comprehensive understanding of the situation. Would you like me to explore any specific aspect of this in more detail?`,
-
-      `I appreciate you sharing that. From what I understand, there are multiple layers to consider here. The initial aspect relates to the fundamental principles we're discussing, but there's also a broader context to consider. This reminds me of similar scenarios where the underlying patterns reveal interesting connections. What aspects of this would you like to explore further?`,
-
-      `Thank you for bringing this up. It's a fascinating topic that deserves careful consideration. When we analyze the details you've provided, we can identify several important elements that contribute to our understanding. This kind of discussion often leads to valuable insights and new perspectives. Is there a particular element you'd like me to focus on?`,
-
-      `Your message raises some compelling points. Let's break this down systematically to better understand the various components involved. There are several key factors to consider, each contributing to the overall picture in unique ways. This kind of analysis often reveals interesting patterns and connections that might not be immediately apparent. What specific aspects would you like to delve into?`,
-    ]
-
-    return responses[Math.floor(Math.random() * responses.length)]
-  }
-
-  const simulateAIResponse = async (userMessage: string) => {
-    const response = getAIResponse(userMessage)
-
-    // Create a new message with empty content
-    const messageId = Date.now().toString()
-    setStreamingMessageId(messageId)
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: messageId,
-        content: "",
-        type: "system",
+const getAIResponse = async (userMessage: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/rag_query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    ])
+      body: JSON.stringify({
+        query: userMessage
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    
+    const data = await response.json();
+    console.log("Response data:", JSON.stringify(data, null, 2));
+    
+    // Extract the message from the response data
+    // Assuming the response structure matches your Starlette endpoint
+    return data.message || data.response || "Sorry, I couldn't process that request.";
+  } catch (error) {
+    console.error('Error fetching AI response:', error);
+    return "Sorry, there was an error processing your request.";
+  }
+}
 
-    // Add a delay before the second vibration
-    setTimeout(() => {
-      // Add vibration when streaming begins
-      navigator.vibrate(50)
-    }, 200) // 200ms delay to make it distinct from the first vibration
+const simulateAIResponse = async (userMessage: string) => {
+  const messageId = Date.now().toString()
+  setStreamingMessageId(messageId)
 
-    // Stream the text
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: messageId,
+      content: "",
+      type: "system",
+    },
+  ])
+
+  // Add vibration when streaming begins
+  navigator.vibrate(50)
+
+  try {
+    const response = await getAIResponse(userMessage)
     await simulateTextStreaming(response)
 
-    // Update with complete message
     setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, content: response, completed: true } : msg)),
+      prev.map((msg) => (msg.id === messageId ? { ...msg, content: response, completed: true } : msg))
     )
 
-    // Add to completed messages set to prevent re-animation
     setCompletedMessages((prev) => new Set(prev).add(messageId))
-
-    // Add vibration when streaming ends
-    navigator.vibrate(50)
-
-    // Reset streaming state
-    setStreamingWords([])
-    setStreamingMessageId(null)
-    setIsStreaming(false)
+  } catch (error) {
+    console.error('Error in AI response:', error)
+    setMessages((prev) =>
+      prev.map((msg) => 
+        msg.id === messageId 
+          ? { ...msg, content: "Sorry, there was an error processing your request.", completed: true } 
+          : msg
+      )
+    )
   }
+
+  // Add vibration when streaming ends
+  navigator.vibrate(50)
+
+  setStreamingWords([])
+  setStreamingMessageId(null)
+  setIsStreaming(false)
+}
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
@@ -428,59 +448,87 @@ export default function ChatInterface() {
     }
   }
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        navigator.vibrate(50)
+        toast("Copied to clipboard", {
+          className: 'bg-primary text-secondary-foreground border-border',
+          duration: 1000,
+        })
+      })
+      .catch(err => {
+        console.error('Failed to copy text: ', err)
+      })
+  }
+
   const renderMessage = (message: Message) => {
     const isCompleted = completedMessages.has(message.id)
-
+  
     return (
-      <div key={message.id} className={cn("flex flex-col", message.type === "user" ? "items-end" : "items-start")}>
-        <div
-          className={cn(
-            "max-w-[80%] px-4 py-2 rounded-2xl",
-            message.type === "user" ? "bg-white border border-gray-200 rounded-br-none" : "text-gray-900",
-          )}
-        >
-          {/* For user messages or completed system messages, render without animation */}
-          {message.content && (
-            <span className={message.type === "system" && !isCompleted ? "animate-fade-in" : ""}>
-              {message.content}
-            </span>
-          )}
-
-          {/* For streaming messages, render with animation */}
-          {message.id === streamingMessageId && (
-            <span className="inline">
-              {streamingWords.map((word) => (
-                <span key={word.id} className="animate-fade-in inline">
-                  {word.text}
-                </span>
-              ))}
-            </span>
-          )}
+      <div key={message.id} className={cn(
+        "flex flex-col mb-6",
+        message.type === "user" ? "items-end" : "items-start"
+      )}>
+        <div className={cn(
+          "group relative flex max-w-[85%] items-start gap-2",
+          message.type === "user" ? "flex-row-reverse" : "flex-row"
+        )}>
+          {/* Avatar/Icon */}
+          <div className={cn(
+            "flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full text-sm",
+            message.type === "user" 
+              ? "bg-primary/10 text-primary-foreground"
+              : "bg-primary/20 text-primary-foreground"
+          )}>
+            {message.type === "user" ? "You" : "AI"}
+          </div>
+  
+          {/* Message Content */}
+          <div className={cn(
+            "flex-1 space-y-2 overflow-hidden rounded-2xl px-4 py-3",
+            message.type === "user"
+              ? "bg-primary/10 text-foreground"
+              : "bg-secondary/50 text-secondary-foreground"
+          )}>
+            {message.content && (
+              <div className={cn(
+                "prose-sm prose-slate dark:prose-invert w-full break-words",
+                message.type === "system" && !isCompleted ? "animate-fade-in" : ""
+              )}>
+                {message.content}
+              </div>
+            )}
+  
+            {message.id === streamingMessageId && (
+              <div className="inline prose-sm prose-slate dark:prose-invert">
+                {streamingWords.map((word) => (
+                  <span key={word.id} className="animate-fade-in inline">
+                    {word.text}
+                  </span>
+                ))}
+                <span className="ml-1 animate-pulse inline-block">▊</span>
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Message actions */}
+  
+        {/* Message Actions */}
         {message.type === "system" && message.completed && (
-          <div className="flex items-center gap-2 px-4 mt-1 mb-2">
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <RefreshCcw className="h-4 w-4" />
-            </button>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Copy className="h-4 w-4" />
-            </button>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Share2 className="h-4 w-4" />
-            </button>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <ThumbsUp className="h-4 w-4" />
-            </button>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <ThumbsDown className="h-4 w-4" />
+          <div className="flex items-center gap-2 px-4 mt-2">
+            <button 
+              onClick={() => handleCopy(message.content)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary/50"
+            >
+              <Copy className="h-3 w-3" />
+              <span>Copy</span>
             </button>
           </div>
         )}
       </div>
     )
   }
+  
 
   // Determine if a section should have fixed height (only for sections after the first)
   const shouldApplyHeight = (sectionIndex: number) => {
@@ -490,31 +538,20 @@ export default function ChatInterface() {
   return (
     <div
       ref={mainContainerRef}
-      className="bg-gray-50 flex flex-col overflow-hidden"
+      className="bg-background flex flex-col overflow-hidden"
       style={{ height: isMobile ? `${viewportHeight}px` : "100svh" }}
     >
-      <ModeToggle/>  
-      <header className="fixed top-0 left-0 right-0 h-12 flex items-center px-4 z-20 bg-gray-50">
+      <header className="fixed top-0 left-0 right-0 h-12 flex items-center px-4 z-20 bg-background">
         <div className="w-full flex items-center justify-between px-2">
-          {/* <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-            <Menu className="h-5 w-5 text-gray-700" />
-            <span className="sr-only">Menu</span>
-          </Button> */}
-
-          <h1 className="text-base font-medium text-gray-800">v0 Chat</h1>
-
+          <h1 className="text-base font-medium text-foreground">MCP Chat</h1>
           <div className="flex items-center space-x-1">
             <ModeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-              <PenSquare className="h-5 w-5 text-foreground" />
-              <span className="sr-only">New Chat</span>
-            </Button>
           </div>
         </div>
       </header>
 
-      <div ref={chatContainerRef} className="flex-grow pb-32 pt-12 px-4 overflow-y-auto">
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div ref={chatContainerRef} className="flex-grow pb-32 pt-12 px-4 overflow-y-auto bg-background/50 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto space-y-2">
           {messageSections.map((section, sectionIndex) => (
             <div
               key={section.id}
@@ -540,44 +577,49 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-50">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
           <div
             ref={inputContainerRef}
             className={cn(
-              "relative w-full rounded-3xl border border-gray-200 bg-white p-3 cursor-text",
+              "relative w-full rounded-2xl border border-border/50 bg-background/80 backdrop-blur-sm p-3 cursor-text shadow-sm",
               isStreaming && "opacity-80",
             )}
             onClick={handleInputContainerClick}
           >
             <div className="flex items-center">
               <Textarea
-                ref={textareaRef}
-                placeholder={isStreaming ? "Waiting for response..." : "Ask Anything"}
-                className="min-h-[24px] max-h-[160px] w-full rounded-3xl border-0 bg-transparent text-gray-900 placeholder:text-gray-400 placeholder:text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-base pl-2 pr-4 pt-0 pb-0 resize-none overflow-y-auto leading-tight"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  // Ensure the textarea is scrolled into view when focused
-                  if (textareaRef.current) {
-                    textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
-                  }
-                }}
+              ref={textareaRef}
+              placeholder={isStreaming ? "Waiting for response..." : "Ask Anything"}
+              className="min-h-[24px] max-h-[160px] w-full rounded-3xl border-0 bg-transparent text-foreground dark:text-foreground placeholder:text-gray-400 placeholder:text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-base pl-2 pr-4 pt-0 pb-0 resize-none overflow-y-auto leading-tight"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                // Ensure the textarea is scrolled into view when focused
+                if (textareaRef.current) {
+                textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
+              }}
               />
               <Button
-                  type="submit"
-                  variant="outline"
-                  size="icon"
-                  className={cn(
-                    "rounded-full h-8 w-8 border-0 flex-shrink-0 transition-all duration-200 ml-2",
-                    hasTyped ? "bg-black scale-110" : "bg-gray-200",
-                  )}
-                  disabled={!inputValue.trim() || isStreaming}
-                >
-                  <ArrowUp className={cn("h-4 w-4 transition-colors", hasTyped ? "text-white" : "text-gray-500")} />
-                  <span className="sr-only">Submit</span>
-                </Button>
+                type="submit"
+                variant="outline"
+                size="icon"
+                className={cn(
+                "rounded-full h-8 w-8 border-0 flex-shrink-0 transition-all duration-200",
+                hasTyped ? "bg-primary scale-110" : "bg-secondary",
+                )}
+                disabled={!inputValue.trim() || isStreaming}
+              >
+                <ArrowUp
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  hasTyped ? "text-primary-foreground" : "text-muted-foreground",
+                )}
+                />
+                <span className="sr-only">Submit</span>
+              </Button>
             </div>
           </div>
         </form>

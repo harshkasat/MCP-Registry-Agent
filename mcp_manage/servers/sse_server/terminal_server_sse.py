@@ -42,10 +42,28 @@ from starlette.routing import Route, Mount  # Routing for HTTP and message endpo
 from starlette.requests import Request  # HTTP request objects
 from starlette.responses import JSONResponse # JsonResponse for rag retrieve query
 from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.cors import CORSMiddleware
+
 
 import uvicorn  # ASGI server to run the Starlette app
 
 from llm.self_query import self_query_retriever
+
+middleware = [
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
+    ),
+    # Only enable HTTPS redirect in production
+    # Middleware(HTTPSRedirectMiddleware)
+]
+
 
 # --------------------------------------------------------------------------------------
 # STEP 1: Initialize FastMCP instance — this acts as your "tool server"
@@ -149,6 +167,7 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
     async def rag_query_retrieve(req: Request) -> JSONResponse:
         try:
             req_body = await req.json()
+            print(req_body)
             query = req_body['query']
             response = self_query_retriever(query=query)
             return JSONResponse(
@@ -168,10 +187,11 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
     # Return the Starlette app with configured endpoints
     return Starlette(
         debug=debug,
+        middleware=middleware,
         routes=[
             Route("/sse", endpoint=handle_sse),          # For initiating SSE connection
             Mount("/messages/", app=sse.handle_post_message),  # For POST-based communication
-            Route("/rag_query", rag_query_retrieve, methods=["GET"]),
+            Route("/rag_query", rag_query_retrieve, methods=["POST"]),
         ],
     )
 
