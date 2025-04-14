@@ -193,7 +193,17 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
                },
                status_code=404
             )
-
+    async def health(req:Request) -> JSONResponse:
+        try:
+            return JSONResponse(    
+                "MCP Server working fine",
+                status_code=200
+            )
+        except Exception as error:
+            return JSONResponse(
+                f"Internal Error {error}",
+                status_code=500
+            )
     # Return the Starlette app with configured endpoints
     return Starlette(
         debug=debug,
@@ -202,6 +212,7 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
             Route("/sse", endpoint=handle_sse),          # For initiating SSE connection
             Mount("/messages/", app=sse.handle_post_message),  # For POST-based communication
             Route("/rag_query", rag_query_retrieve, methods=["POST"]),
+            Route("/", health, methods=["GET"]),
         ],
     )
 
