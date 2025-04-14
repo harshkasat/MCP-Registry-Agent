@@ -22,7 +22,8 @@ import { cn } from "@/lib/utils"
 import { ModeToggle } from "@/components/DarkMode";
 // import { useToast } from "@/components/ui/sonner"
 import { toast } from "sonner"
-
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 type ActiveButton = "none" | "add" | "deepSearch" | "think"
 type MessageType = "user" | "system"
@@ -46,6 +47,21 @@ interface MessageSection {
 interface StreamingWord {
   id: number
   text: string
+}
+
+interface Metadata {
+  categories: string[]
+  created_by: string
+  github_link: string
+  language: string
+  link: string
+  stars: string
+  title: string
+}
+
+interface AIResponse {
+  message: string
+  metadata: Metadata
 }
 
 // Faster word delay for smoother streaming
@@ -280,77 +296,87 @@ export default function ChatInterface() {
     })
   }
 
-const getAIResponse = async (userMessage: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/rag_query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: userMessage
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+  const getAIResponse = async (userMessage: string) => {
+    try {
+      const response = await fetch(`${BASE_URL}/rag_query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: userMessage
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data: AIResponse = await response.json();
+      console.log("Response data:", JSON.stringify(data, null, 2));
+      
+      // Format the message with metadata
+      const formattedMessage = `${data.message}\n\n---\n
+      **Project Details:**\n-
+        Title: ${data.metadata.title}\n-
+        Language: ${data.metadata.language}\n-
+        Created by: ${data.metadata.created_by}\n-
+        Stars: ${data.metadata.stars}\n- 
+        Categories: ${data.metadata.categories.join(', ')}\n\n
+      **Links:**\n- 
+        Git Hub: ${data.metadata.github_link}\n- 
+        Project Link: ${data.metadata.link}`;
+      
+      return formattedMessage;
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+      return "Sorry, there was an error processing your request.";
     }
-    
-    const data = await response.json();
-    console.log("Response data:", JSON.stringify(data, null, 2));
-    
-    // Extract the message from the response data
-    // Assuming the response structure matches your Starlette endpoint
-    return data.message || data.response || "Sorry, I couldn't process that request.";
-  } catch (error) {
-    console.error('Error fetching AI response:', error);
-    return "Sorry, there was an error processing your request.";
   }
-}
 
-const simulateAIResponse = async (userMessage: string) => {
-  const messageId = Date.now().toString()
-  setStreamingMessageId(messageId)
+  const simulateAIResponse = async (userMessage: string) => {
+    const messageId = Date.now().toString()
+    setStreamingMessageId(messageId)
 
-  setMessages((prev) => [
-    ...prev,
-    {
-      id: messageId,
-      content: "",
-      type: "system",
-    },
-  ])
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: messageId,
+        content: "",
+        type: "system",
+      },
+    ])
 
-  // Add vibration when streaming begins
-  navigator.vibrate(50)
+    // Add vibration when streaming begins
+    navigator.vibrate(50)
 
-  try {
-    const response = await getAIResponse(userMessage)
-    await simulateTextStreaming(response)
+    try {
+      const response = await getAIResponse(userMessage)
+      await simulateTextStreaming(response)
 
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, content: response, completed: true } : msg))
-    )
-
-    setCompletedMessages((prev) => new Set(prev).add(messageId))
-  } catch (error) {
-    console.error('Error in AI response:', error)
-    setMessages((prev) =>
-      prev.map((msg) => 
-        msg.id === messageId 
-          ? { ...msg, content: "Sorry, there was an error processing your request.", completed: true } 
-          : msg
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, content: response, completed: true } : msg))
       )
-    )
+
+      setCompletedMessages((prev) => new Set(prev).add(messageId))
+    } catch (error) {
+      console.error('Error in AI response:', error)
+      setMessages((prev) =>
+        prev.map((msg) => 
+          msg.id === messageId 
+            ? { ...msg, content: "Sorry, there was an error processing your request.", completed: true } 
+            : msg
+        )
+      )
+    }
+
+    // Add vibration when streaming ends
+    navigator.vibrate(50)
+
+    setStreamingWords([])
+    setStreamingMessageId(null)
+    setIsStreaming(false)
   }
-
-  // Add vibration when streaming ends
-  navigator.vibrate(50)
-
-  setStreamingWords([])
-  setStreamingMessageId(null)
-  setIsStreaming(false)
-}
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
@@ -496,7 +522,11 @@ const simulateAIResponse = async (userMessage: string) => {
                 "prose-sm prose-slate dark:prose-invert w-full break-words",
                 message.type === "system" && !isCompleted ? "animate-fade-in" : ""
               )}>
-                {message.content}
+                {message.type === 'system' ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                  ) : (
+                  message.content // Render user message as plain text
+                  )}
               </div>
             )}
   

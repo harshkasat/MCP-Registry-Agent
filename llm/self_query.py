@@ -21,10 +21,14 @@ def self_query_retriever(query:str, verbose:bool=True):
         response = query_retriever.invoke(query)
         if response == []:
             return "Sorry 🥲 we didn't find any suitable MCP for your need"
-        return f" Response about MCP server {response[0].page_content} and here is metadata about the response {response[0].metadata}"
+        content = {
+            "message": response[0].page_content,
+            "metadata": response[0].metadata
+        }
+        return content
 
     except Exception as error:
-       print(f"Failed to generate content by self_query_retriever: {error}")
+        print(f"Failed to generate content by self_query_retriever: {error}")
 
 # if __name__ == '__main__':
 #     query = "What is best MCP for prisma with more star"

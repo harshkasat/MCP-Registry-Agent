@@ -125,9 +125,21 @@ async def add_numbers(a: float, b: float) -> float:
 @mcp.tool()
 async def reterive_mcp_data(query:str) -> str:
     """
-    **
+    Retrieves information related to the MCP (Modular Control Platform) server based on the provided query.
+
+    This tool is used to query the MCP server for relevant data such as server status, configurations,
+    metrics, or any other information that can be retrieved using the input query string.
+    
+    Args:
+        query (str): The search query to retrieve specific information from the MCP server.
+
+    Returns:
+        str: The result or response fetched from the MCP server based on the query.
     """
-    return self_query_retriever(query=query)
+    try:
+        return self_query_retriever(query=query)
+    except Exception as error:
+        return f"Got error when running mcp tool reterive_mcp_data() {error}"
 
 
 # --------------------------------------------------------------------------------------
@@ -171,9 +183,7 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
             query = req_body['query']
             response = self_query_retriever(query=query)
             return JSONResponse(
-                content={
-                    "message":response
-                },
+                response,
                 status_code=200
             )
         except HTTPException as error:
