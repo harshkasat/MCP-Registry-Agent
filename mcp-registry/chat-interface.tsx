@@ -100,6 +100,47 @@ export default function ChatInterface() {
   const BOTTOM_PADDING = 128 // pb-32 (8rem = 128px)
   const ADDITIONAL_OFFSET = 16 // Reduced offset for fine-tuning
 
+  const checkBackendServerRunning = async () => {
+    let attempts = 0;
+    const maxAttempts = 40;
+    
+    const tryConnect = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}`, {
+          method: "GET",
+          headers: {
+            "accept": "application/json"
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Backend server error: ${response.status} ${response.statusText}`);
+        }
+        toast.success('Connected to backend server');
+        return true;
+      } catch (error) {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            toast.error('Cannot connect to backend server after 40 seconds. Please ensure it is running.');
+          } else {
+            toast.error('Unexpected error connecting to backend');
+          }
+          console.error('Backend connection error:', error);
+          return false;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return tryConnect();
+      }
+    };
+  
+    await tryConnect();
+  }
+
+  useEffect(() => {
+    checkBackendServerRunning();
+  }, [])
+
   // Check if device is mobile and get viewport height
   useEffect(() => {
     const checkMobileAndViewport = () => {
@@ -317,15 +358,16 @@ export default function ChatInterface() {
       
       // Format the message with metadata
       const formattedMessage = `${data.message}\n\n---\n
-      **Project Details:**\n-
-        Title: ${data.metadata.title}\n-
-        Language: ${data.metadata.language}\n-
-        Created by: ${data.metadata.created_by}\n-
-        Stars: ${data.metadata.stars}\n- 
-        Categories: ${data.metadata.categories.join(', ')}\n\n
-      **Links:**\n- 
-        Git Hub: ${data.metadata.github_link}\n- 
-        Project Link: ${data.metadata.link}`;
+      Project Details \n-
+       **Title**: ${data.metadata.title} \n-
+       **Language**: ${data.metadata.language} \n-
+       **Author**: ${data.metadata.created_by} \n-
+       **Stars**: ${data.metadata.stars} \n-
+       **Categories**: ${data.metadata.categories.join(', ')}
+
+      Links
+      **GitHub Repository**: ${data.metadata.github_link}
+      **Project Website**: ${data.metadata.link}`;
       
       return formattedMessage;
     } catch (error) {
@@ -497,7 +539,7 @@ export default function ChatInterface() {
         message.type === "user" ? "items-end" : "items-start"
       )}>
         <div className={cn(
-          "group relative flex max-w-[85%] items-start gap-2",
+          "group relative flex max-w-4xl items-start gap-2",
           message.type === "user" ? "flex-row-reverse" : "flex-row"
         )}>
           {/* Avatar/Icon */}
@@ -573,7 +615,9 @@ export default function ChatInterface() {
     >
       <header className="fixed top-0 left-0 right-0 h-12 flex items-center px-4 z-20 bg-background">
         <div className="w-full flex items-center justify-between px-2">
-          <h1 className="text-base font-medium text-foreground">MCP Chat</h1>
+          <a href="/">
+            <h1 className="text-base font-medium text-foreground">MCP Chat</h1>
+          </a>
           <div className="flex items-center space-x-1">
             <ModeToggle />
           </div>
@@ -581,7 +625,7 @@ export default function ChatInterface() {
       </header>
 
       <div ref={chatContainerRef} className="flex-grow pb-32 pt-12 px-4 overflow-y-auto bg-background/50 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto space-y-2">
+        <div className="max-w-4xl mx-auto space-y-2">
           {messageSections.map((section, sectionIndex) => (
             <div
               key={section.id}
