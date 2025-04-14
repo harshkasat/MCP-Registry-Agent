@@ -55,13 +55,13 @@ from llm.self_query import self_query_retriever
 middleware = [
     Middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "https://mcpserver.cognitodev.space/"],
+        allow_origins=["http://localhost:3000", "https://mcpserver.cognitodev.space"],
         allow_methods=["*"],
         allow_headers=["*"],
         allow_credentials=True,
     ),
     # Only enable HTTPS redirect in production
-    # Middleware(HTTPSRedirectMiddleware)
+    Middleware(HTTPSRedirectMiddleware)
 ]
 
 
