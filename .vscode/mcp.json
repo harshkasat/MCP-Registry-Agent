@@ -1,0 +1,8 @@
+{
+    "servers": {
+        "mcp-registry": {
+            "type": "sse",
+            "url": "http://0.0.0.0:8081/sse"
+        }
+    }
+}
